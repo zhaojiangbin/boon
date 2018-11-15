@@ -57,6 +57,23 @@ those. See `boon-special-map' for exceptions.")
 (defvar boon/insert-command nil "Command which started the insertion.")
 (defvar boon/insert-origin 0 "Point at start of insert mode.")
 
+;; Hooks in `after-change-functions' can be called more than once.
+;; These variables remember the last insertion change so our hook will
+;; not append changes twice in `boon/insert-command-history'.
+(defvar boon/insert-last-begin -1)
+(defvar boon/insert-last-end -1)
+(defvar boon/insert-last-length -1)
+
+(defun boon/set-last-insert (beg end len)
+  (setq boon/insert-last-begin beg
+        boon/insert-last-end end
+        boon/insert-last-length len))
+
+(defun boon/not-last-insert (beg end len)
+  (not (and (= boon/insert-last-begin beg)
+            (= boon/insert-last-end end)
+            (= boon/insert-last-length len))))
+
 (defcustom boon-command-cursor-type 'box "`cursor-type' for command mode." :group 'boon :type 'sexp)
 (defcustom boon-insert-cursor-type 'bar "`cursor-type' for insert mode." :group 'boon :type 'sexp)
 
@@ -71,7 +88,7 @@ optional list of changes as its last argument."
 
 (defun boon/after-change-hook (begin end old-len)
   "Remember the change defined by BEGIN END OLD-LEN in `boon/insert-command-history'."
-  (when (and boon-insert-state (not mc--executing-command-for-fake-cursor))
+  (when (and boon-insert-state (boon/not-last-insert begin end old-len) (not mc--executing-command-for-fake-cursor))
     ;; (message "bach: %s" boon/insert-command-history (list begin end old-len))
     (cond ((and boon/insert-command-history
                 (string= "" (nth 2 (car boon/insert-command-history))) ;; no insert
@@ -96,7 +113,9 @@ optional list of changes as its last argument."
                                                    (cdr boon/insert-command-history))))
           (t
            (push (list (- begin boon/insert-origin) old-len (buffer-substring-no-properties begin end))
-                 boon/insert-command-history)))))
+                 boon/insert-command-history)))
+    ;; remember the change
+    (boon/set-last-insert begin end old-len)))
 
 (defun boon/replay-changes (changes)
   "Replay the CHANGES at the current point."
@@ -127,6 +146,7 @@ input-method is reset to nil.)")
                  command-history))
          (setq boon/insert-command nil)
          (setq boon/insert-command-history nil)
+         (boon/set-last-insert -1 -1 -1)
          (setq cursor-type boon-command-cursor-type))
         (boon-special-state)
         (boon-insert-state
