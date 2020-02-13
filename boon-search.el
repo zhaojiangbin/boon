@@ -118,7 +118,9 @@ This is an extremely bugged first draft."
 
 (defadvice isearch-exit (after boon-isearch-set-search activate compile)
   "After isearch, highlight the search term and set it as boon current regexp."
-  (boon-set-search-string isearch-string))
+  (if isearch-regexp
+      (boon-set-search-regexp isearch-string)
+    (boon-set-search-string isearch-string)))
 
 (defadvice swiper--action (after boon-swiper-set-search activate compile)
   "After swiper, highlight the search term and set it as boon current regexp."
