@@ -18,36 +18,44 @@
 (require 'boon-utils)
 (require 'multiple-cursors)
 (require 'dash)
+(require 'ivy)
 
 (defcustom boon-enclosures
-      '(
-        (?A . ("⟨" "⟩"))
-        (?a . ("<" ">"))
-        (?b . ("[" "]"))
-        (?c . ("{-" "-}"))
-        (?d . ("\"" "\"")) ;; double quotes
-        (?D . ("``" "''")) ;; Double quotes
-        (?f . ("«" "»")) ;; french quotes
-        (?h . ("#" "#")) ;; hash
-        (?s . ("`" "'")) ;; symbol
-        (?m . ("\\(" "\\)")) ;; Math
-        (?M . ("\\[" "\\]")) ;; display Math
-        (?o . ("⟦" "⟧")) ;; oxford brackets
-        (?p . ("(" ")"))
-        (?q . ("'" "'"))
-        (?r . ("{" "}")) ;; bRaces
-        (?t . ("~" "~")) ;; tilda
-        )
+      '(("angle" . ("<" ">"))
+        ("square" . ("[" "]"))
+        ("parentheses" . ("(" ")"))
+        ("braces" . ("{" "}"))
+        ("single quotes" . ("'" "'"))
+        ("double quotes" . ("\"" "\""))
+        ("symbol quotes" . ("`" "'"))
+        ("vertical bars" . ("|" "|"))
+        ("underscores" . ("_" "_"))
+        ("slashes" . ("/" "/"))
+        ("asterisks" . ("*" "*"))
+        ("hashes" . ("#" "#"))
+        ("tildes" . ("~" "~")))
         "Enclosures to use with the `boon-enclose' command."
-        :type '(alist :key-type character :value-type (group (string :tag "Open ") (string :tag "Close")))
+        :type '(alist :key-type string :value-type (group (string :tag "Open ") (string :tag "Close")))
         :group 'boon)
+
+(defun boon--enclosure-transformer (key)
+  (let* ((entry (assoc key boon-enclosures))
+         (pair (cdr entry))
+         (open (car pair))
+         (close (cadr pair)))
+    (format "%s - %s...%s" key open close)))
 
 (defun boon-spec-enclosure ()
   "Specify an enclosure style.  To be used as an argument to interactive."
-  (let* ((c (read-char "Specify the enclosure"))
-         (s (make-string 1 c))
-         (choice (assoc c boon-enclosures)))
-    (if choice (cdr choice) (list s s))))
+  (let* ((str (ivy-read "Specify the enclosure: "
+                        (mapcar #'car boon-enclosures)
+                        :require-match nil
+                        :caller #'boon-spec-enclosure))
+         (choice (assoc str boon-enclosures)))
+    (if choice (cdr choice) (list str str))))
+
+(ivy-configure #'boon-spec-enclosure
+  :display-transformer-fn #'boon--enclosure-transformer)
 
 (defun boon-select-from-region (select-fun)
   "Return a region list with a single item: the region selected after calling SELECT-FUN (interactively)."
