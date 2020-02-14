@@ -309,16 +309,27 @@ subregions or when repeating a command.  The bounds that are
 eventually returned are in the form of a list of regs.  See
 boon-regs.el."
   (let ((my-prefix-arg 0)
+        (show-keymap 0)
         (kmv boon-moves-map)
         (kms boon-select-map))
     ;; We read a move or selection, in both keymaps in parallel. First command found wins.
     (while (and (or kmv kms) (not (commandp kms)) (not (commandp kmv)))
-      (let ((last-char (read-event (format "%s %s" msg my-prefix-arg))))
+      (cond ((eq show-keymap 2)
+             (which-key--show-keymap "moves" boon-moves-map nil nil t))
+            ((eq show-keymap 1)
+             (which-key--show-keymap "selects" boon-select-map nil nil t))
+            ((eq show-keymap 0)
+             (which-key--hide-popup)))
+      ;; TODO: make the event for keys a custom var
+      (let ((last-char (read-event (format "%s (? for keys) %s" msg my-prefix-arg))))
         ;; read-event, because mc badly advises read-char
-        (if (and (integerp last-char) (>= last-char ?0) (<= last-char ?9))
-            (setq my-prefix-arg (+ (- last-char ?0) (* 10 my-prefix-arg )))
-          (if kms (setq kms (lookup-key kms (vector last-char))))
-          (if kmv (setq kmv (lookup-key kmv (vector last-char)))))))
+        (if (eq ?? last-char)
+            (setq show-keymap (mod (+ show-keymap 1) 3))
+          (if (and (integerp last-char) (>= last-char ?0) (<= last-char ?9))
+              (setq my-prefix-arg (+ (- last-char ?0) (* 10 my-prefix-arg )))
+            (if kms (setq kms (lookup-key kms (vector last-char))))
+            (if kmv (setq kmv (lookup-key kmv (vector last-char))))))))
+    (when (> show-keymap 0) (which-key--hide-popup))
     (when (eq my-prefix-arg 0) (setq my-prefix-arg nil))
     ;; The command is ready; we now execute it (once per cursor if applicable).
     (if (or kms kmv)
