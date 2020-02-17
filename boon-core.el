@@ -86,6 +86,8 @@ optional list of changes as its last argument."
   (unless boon/insert-command
     (setq boon/insert-command (cons this-command (-map (lambda (x) (list 'quote x)) args)))))
 
+(eval-when-compile
+  (defvar mc--executing-command-for-fake-cursor))
 (defun boon/after-change-hook (begin end old-len)
   "Remember the change defined by BEGIN END OLD-LEN in `boon/insert-command-history'."
   (when (and boon-insert-state (boon/not-last-insert begin end old-len) (not mc--executing-command-for-fake-cursor))
