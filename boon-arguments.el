@@ -27,6 +27,8 @@
         ("braces" . ("{" "}"))
         ("single quotes" . ("'" "'"))
         ("double quotes" . ("\"" "\""))
+        ("escaped single quotes" . ("\\\'" "\\\'"))
+        ("escaped double quotes" . ("\\\"" "\\\""))
         ("symbol quotes" . ("`" "'"))
         ("vertical bars" . ("|" "|"))
         ("underscores" . ("_" "_"))
