@@ -8,14 +8,26 @@
 
 (defvar-local boon-regexp nil "Current regexp search. Use boon-set-search-regexp to set this variable.")
 (defvar-local boon-search-success t "Last search was successful or non-existent.")
+(defvar-local boon-matches-highlighted nil "Matches of last search highlighted")
 
 (defun boon-set-search-regexp (regexp)
   "Set boon-regexp to REGEXP and manage highlighting."
   (when boon-regexp (hi-lock-unface-buffer boon-regexp))
-  (setq boon-search-success t)
+  (setq boon-search-success t
+        boon-matches-highlighted t)
   (setq boon-regexp regexp)
   (boon-highlight-regexp))
 
+;;;###autoload
+(defun boon-toggle-matches-highlight ()
+  (interactive)
+  (if (and boon-regexp boon-search-success)
+      (progn
+        (if boon-matches-highlighted
+            (hi-lock-unface-buffer boon-regexp)
+          (hi-lock-face-buffer boon-regexp))
+        (setq boon-matches-highlighted (null boon-matches-highlighted)))
+    (message "No successful match previously")))
 
 (defun boon-qsearch (forward)
   "Search the current boon-regexp, in the direction specified (as FORWARD).
@@ -29,11 +41,13 @@ the regexp."
                    (if forward (1+ (point)) (1- (point)))
                  (message "Wrapping around")
                  (if forward (point-min) (point-max))))
-    (setq boon-search-success nil)
+    (setq boon-search-success nil
+          boon-matches-highlighted nil)
     (let ((case-fold-search nil)) ;; because hi-lock is case-sensitive
       (if forward (re-search-forward boon-regexp) (re-search-backward boon-regexp)))
     ;; If search fails an exception is thrown and this won't be set.
-    (setq boon-search-success t))
+    (setq boon-search-success t
+          boon-matches-highlighted t))
   (goto-char (match-beginning 0)))
 
 (defun boon-qsearch-next ()
